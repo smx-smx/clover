@@ -165,6 +165,7 @@ EfiStrDuplicate (
 }
 //Compare strings case insensitive
 INTN
+EFIAPI
 StriCmp (
 		IN      CONST CHAR16              *FirstS,
 		IN      CONST CHAR16              *SecondS
@@ -182,6 +183,7 @@ StriCmp (
 
 // If Null-terminated strings are case insensitive equal or its sSize symbols are equal then TRUE
 BOOLEAN
+EFIAPI
 AsciiStriNCmp (
               IN      CONST CHAR8              *FirstS,
               IN      CONST CHAR8              *SecondS,
@@ -201,6 +203,7 @@ AsciiStriNCmp (
 
 // Case insensitive search of WhatString in WhereString
 BOOLEAN
+EFIAPI
 AsciiStrStriN (
                IN      CONST CHAR8              *WhatString,
                IN      CONST UINTN               sWhatSize,
@@ -308,6 +311,7 @@ EfiDevicePathInstanceCount (
 
 **/
 VOID *
+EFIAPI
 EfiReallocatePool (
   IN VOID                 *OldPool,
   IN UINTN                OldSize,
@@ -344,6 +348,7 @@ EfiReallocatePool (
 
 **/
 BOOLEAN
+EFIAPI
 TimeCompare (
   IN EFI_TIME               *FirstTime,
   IN EFI_TIME               *SecondTime

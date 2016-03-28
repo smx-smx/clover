@@ -651,7 +651,7 @@ static CHAR8 *SearchString (
   return NULL;
 }
 
-VOID DumpKernelAndKextPatches(KERNEL_AND_KEXT_PATCHES *Patches)
+VOID EFIAPI DumpKernelAndKextPatches(KERNEL_AND_KEXT_PATCHES *Patches)
 {
   if (!Patches) {
     DBG("Kernel and Kext Patches null pointer\n");

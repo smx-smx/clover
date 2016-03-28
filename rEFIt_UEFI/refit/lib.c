@@ -1597,7 +1597,7 @@ CHAR16 *FileDevicePathFileToStr(IN EFI_DEVICE_PATH_PROTOCOL *DevPath)
   return NULL;
 }
 
-BOOLEAN DumpVariable(CHAR16* Name, EFI_GUID* Guid, INTN DevicePathAt)
+BOOLEAN EFIAPI DumpVariable(CHAR16* Name, EFI_GUID* Guid, INTN DevicePathAt)
 {
   UINTN                     dataSize            = 0;
   UINT8                     *data               = NULL;

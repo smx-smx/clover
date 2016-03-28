@@ -799,23 +799,23 @@ EfiStrDuplicate (
 				 IN CHAR16   *Src
 				 );
 
-extern INTN StriCmp (
+extern INTN EFIAPI StriCmp (
 		 IN      CONST CHAR16              *FirstString,
 		 IN      CONST CHAR16              *SecondString
 		 );
 
-extern INTN AsciiStriCmp (
+extern INTN EFIAPI AsciiStriCmp (
               IN      CONST CHAR8              *FirstString,
               IN      CONST CHAR8              *SecondString
               );
 
-extern BOOLEAN AsciiStriNCmp (
+extern BOOLEAN EFIAPI AsciiStriNCmp (
                IN      CONST CHAR8              *FirstString,
                IN      CONST CHAR8              *SecondString,
                IN      CONST UINTN               sSize
                );
 
-extern BOOLEAN AsciiStrStriN (
+extern BOOLEAN EFIAPI AsciiStrStriN (
                 IN      CONST CHAR8              *WhatString,
                 IN      CONST UINTN               sWhatSize,
                 IN      CONST CHAR8              *WhereString,
@@ -831,6 +831,7 @@ EfiDevicePathInstanceCount (
 							);
 
 extern VOID *
+EFIAPI
 EfiReallocatePool (
 				   IN VOID                 *OldPool,
 				   IN UINTN                OldSize,
@@ -838,15 +839,16 @@ EfiReallocatePool (
 				   );
 
 extern BOOLEAN
+EFIAPI
 TimeCompare (
 			 IN EFI_TIME               *FirstTime,
 			 IN EFI_TIME               *SecondTime
 			 );
 
-extern BOOLEAN DumpVariable(CHAR16* Name, EFI_GUID* Guid, INTN DevicePathAt);
+extern EFIAPI BOOLEAN DumpVariable(CHAR16* Name, EFI_GUID* Guid, INTN DevicePathAt);
 
 // Utils functions
-VOID DumpKernelAndKextPatches(KERNEL_AND_KEXT_PATCHES *Patches);
+VOID EFIAPI DumpKernelAndKextPatches(KERNEL_AND_KEXT_PATCHES *Patches);
 #endif
 /*
 
