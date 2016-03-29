@@ -4,7 +4,7 @@
 
   Copyright (C) 2014, Red Hat, Inc.
   (C) Copyright 2013 Hewlett-Packard Development Company, L.P.<BR>
-  Copyright (c) 2009 - 2015, Intel Corporation. All rights reserved.<BR>
+  Copyright (c) 2009 - 2016, Intel Corporation. All rights reserved.<BR>
   This program and the accompanying materials
   are licensed and made available under the terms and conditions of the BSD License
   which accompanies this distribution.  The full text of the license may be found at
@@ -78,6 +78,8 @@ FindEndOfParameter(
                                 reminaing command line on return
   @param[in, out] TempParameter pointer to string of command line item extracted.
   @param[in]      Length        buffer size of TempParameter.
+  @param[in]      StripQuotation  if TRUE then strip the quotation marks surrounding
+                                  the parameters.
 
   @return   EFI_INALID_PARAMETER  A required parameter was NULL or pointed to a NULL or empty string.
   @return   EFI_NOT_FOUND         A closing " could not be found on the specified string
@@ -87,18 +89,20 @@ EFIAPI
 GetNextParameter(
   IN OUT CHAR16   **Walker,
   IN OUT CHAR16   **TempParameter,
-  IN CONST UINTN  Length
+  IN CONST UINTN  Length,
+  IN BOOLEAN      StripQuotation
   )
 {
   CONST CHAR16 *NextDelim;
 
-//  ASSERT(Walker           != NULL);
-//  ASSERT(*Walker          != NULL);
-//  ASSERT(TempParameter    != NULL);
-//  ASSERT(*TempParameter   != NULL);
-  if (!Walker || !(*Walker) || !TempParameter || !(*TempParameter)) {
-    return EFI_INVALID_PARAMETER;
+  if (Walker           == NULL
+    ||*Walker          == NULL
+    ||TempParameter    == NULL
+    ||*TempParameter   == NULL
+    ){
+    return (EFI_INVALID_PARAMETER);
   }
+
 
   //
   // make sure we dont have any leading spaces
@@ -111,9 +115,10 @@ GetNextParameter(
   // make sure we still have some params now...
   //
   if (StrLen(*Walker) == 0) {
-//    ASSERT((*Walker)[0] == CHAR_NULL);
+DEBUG_CODE_BEGIN();
     *Walker = NULL;
-    return EFI_NOT_FOUND;
+DEBUG_CODE_END();
+    return (EFI_INVALID_PARAMETER);
   }
 
   NextDelim = FindEndOfParameter(*Walker);
@@ -125,7 +130,7 @@ DEBUG_CODE_END();
     return (EFI_NOT_FOUND);
   }
 
-  StrnCpy(*TempParameter, (*Walker), NextDelim - *Walker);
+  StrnCpyS(*TempParameter, Length / sizeof(CHAR16), (*Walker), NextDelim - *Walker);
 
   //
   // Add a CHAR_NULL if we didnt get one via the copy
@@ -159,7 +164,11 @@ DEBUG_CODE_END();
     //
       // eliminate the unescaped quote
     //
+      if (StripQuotation) {
       CopyMem ((CHAR16*)NextDelim, NextDelim + 1, StrSize (NextDelim + 1));
+	  } else{
+        NextDelim++;
+	  }
     }
     }
 
@@ -177,6 +186,8 @@ DEBUG_CODE_END();
   etc... must be complete before calling this API.
 
   @param[in] CommandLine         String of command line to parse
+  @param[in] StripQuotation       if TRUE then strip the quotation marks surrounding
+                                  the parameters.
   @param[in, out] Argv           pointer to array of strings; one for each parameter
   @param[in, out] Argc           pointer to number of strings in Argv array
 
@@ -187,6 +198,7 @@ EFI_STATUS
 EFIAPI
 ParseCommandLineToArgs(
   IN CONST CHAR16 *CommandLine,
+  IN BOOLEAN      StripQuotation,
   IN OUT CHAR16 ***Argv,
   IN OUT UINTN *Argc
   )
@@ -229,7 +241,7 @@ ParseCommandLineToArgs(
       ; Walker != NULL && *Walker != CHAR_NULL
       ; Count++
       ) {
-    if (EFI_ERROR(GetNextParameter(&Walker, &TempParameter, Size))) {
+    if (EFI_ERROR(GetNextParameter(&Walker, &TempParameter, Size, TRUE))) {
       break;
     }
   }
@@ -247,7 +259,7 @@ ParseCommandLineToArgs(
   Walker = (CHAR16*)NewCommandLine;
   while(Walker != NULL && *Walker != CHAR_NULL) {
     SetMem16(TempParameter, Size, CHAR_NULL);
-    if (EFI_ERROR(GetNextParameter(&Walker, &TempParameter, Size))) {
+    if (EFI_ERROR(GetNextParameter(&Walker, &TempParameter, Size, StripQuotation))) {
       Status = EFI_INVALID_PARAMETER;
       goto Done;
     }
@@ -382,6 +394,7 @@ CreatePopulateInstallShellParametersProtocol (
     // Populate Argc and Argv
     //
     Status = ParseCommandLineToArgs(FullCommandLine,
+                                    TRUE,
                                     &(*NewShellParameters)->Argv,
                                     &(*NewShellParameters)->Argc);
 
@@ -1039,7 +1052,7 @@ UpdateStdInStdOutStdErr(
   //
   // re-populate the string to support any filenames that were in quotes.
   //
-  StrnCpy(CommandLineCopy, NewCommandLine, StrLen(NewCommandLine));
+  StrnCpyS(CommandLineCopy, StrSize(CommandLineCopy)/sizeof(CHAR16), NewCommandLine, StrLen(NewCommandLine));
 
   if (FirstLocation != CommandLineCopy + StrLen(CommandLineCopy)
     && ((UINTN)(FirstLocation - CommandLineCopy) < StrLen(NewCommandLine))
@@ -1279,18 +1292,13 @@ UpdateStdInStdOutStdErr(
           &TempHandle,
           EFI_FILE_MODE_READ,
           0);
-        if (InUnicode) {
-          //
-          // Chop off the 0xFEFF if it's there...
-          //
-          RemoveFileTag(&TempHandle);
-        } else if (!EFI_ERROR(Status)) {
+        if (!EFI_ERROR(Status)) {
+          if (!InUnicode) {
           //
           // Create the ASCII->Unicode conversion layer
           //
           TempHandle = CreateFileInterfaceFile(TempHandle, FALSE);
         }
-        if (!EFI_ERROR(Status)) {
           ShellParameters->StdIn = TempHandle;
           gST->ConIn = CreateSimpleTextInOnFile(TempHandle, &gST->ConsoleInHandle);
         }
@@ -1394,6 +1402,7 @@ RestoreStdInStdOutStdErr (
 
   @param[in, out] ShellParameters        Pointer to parameter structure to modify.
   @param[in] NewCommandLine              The new command line to parse and use.
+  @param[in] Type                        The type of operation.
   @param[out] OldArgv                    Pointer to old list of parameters.
   @param[out] OldArgc                    Pointer to old number of items in Argv list.
 
@@ -1405,14 +1414,17 @@ EFIAPI
 UpdateArgcArgv(
   IN OUT EFI_SHELL_PARAMETERS_PROTOCOL  *ShellParameters,
   IN CONST CHAR16                       *NewCommandLine,
+  IN SHELL_OPERATION_TYPES              Type,
   OUT CHAR16                            ***OldArgv OPTIONAL,
   OUT UINTN                             *OldArgc OPTIONAL
   )
 {
+   BOOLEAN                 StripParamQuotation;
 //  ASSERT(ShellParameters != NULL);
   if (!ShellParameters) {
     return EFI_INVALID_PARAMETER;
   }
+  StripParamQuotation = TRUE;
 
   if (OldArgc != NULL) {
     *OldArgc = ShellParameters->Argc;
@@ -1421,7 +1433,15 @@ UpdateArgcArgv(
     *OldArgv = ShellParameters->Argv;
   }
 
-  return (ParseCommandLineToArgs(NewCommandLine, &(ShellParameters->Argv), &(ShellParameters->Argc)));
+  if (Type == Script_File_Name) {
+    StripParamQuotation = FALSE;
+  }
+  
+  return ParseCommandLineToArgs( NewCommandLine, 
+                                 StripParamQuotation, 
+                                 &(ShellParameters->Argv), 
+                                 &(ShellParameters->Argc)
+                                );
 }
 
 /**
