@@ -15,6 +15,7 @@ WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 **/
 
 #include <Protocol/EmuVariableControl.h>
+#include <Library/UefiRuntimeServicesTableLib.h>
 
 #include "Variable.h"
 
@@ -24,9 +25,6 @@ BOOLEAN     mAtRuntime = FALSE;
 
 /** Original runtime services. */
 EFI_RUNTIME_SERVICES gOrgRT;
-
-/** Pointer to runtime services. */
-EFI_RUNTIME_SERVICES *gRT;
 
 /** Apple Boot Guid - cars with this GUID are visible in OSX with nvram */
 extern EFI_GUID gEfiAppleBootGuid;
